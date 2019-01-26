@@ -12,6 +12,8 @@ background:setFillColor(0,5, 0,6, 0,6) ]]
 
 local gemTable = {}
 
+local isAtHome = false;
+
 local physics = require( "physics" )
 physics.start()
 physics.setGravity( 0, 0 )
@@ -69,6 +71,27 @@ local function followTap(event)
 end
 background:addEventListener("touch", followTap)
 
+local function hasCollidedCircle( obj1, obj2 )
+
+    if ( obj1 == nil ) then  -- Make sure the first object exists
+        return false
+    end
+    if ( obj2 == nil ) then  -- Make sure the other object exists
+        return false
+    end
+
+    local dx = obj1.x - obj2.x
+    local dy = obj1.y - obj2.y
+
+    local distance = math.sqrt( dx*dx + dy*dy )
+    local objectSize = (obj2.contentWidth/2) + (obj1.contentWidth/2)
+
+    if ( distance < objectSize ) then
+        return true
+    end
+    return false
+end
+
 local function createGem()
     local gem = display.newImageRect("gem04purple.png", 40, 40)
     table.insert(gemTable, gem)
@@ -100,6 +123,14 @@ end
 
 local function gameLoop()
     createGem()
+    if (hasCollidedCircle(myCircle, player) == true) then
+        if (isAtHome == false) then
+            isAtHome = true;
+            print("Player + shield")
+        end
+    else
+        isAtHome = false;
+    end
     for i = #gemTable, 1, -1 do
         local thisGem = gemTable[i] 
         if ( thisGem.x < -100 or
