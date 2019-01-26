@@ -11,14 +11,16 @@ background:setFillColor(0,5, 0,6, 0,6) ]]
 
 
 local gemTable = {}
+local gemCarried = {}
 
 local isAtHome = false;
+local factor = 0;
 
 local physics = require( "physics" )
 physics.start()
 physics.setGravity( 0, 0 )
 
-local background = display.newImageRect("space-1.png", 500, 600)
+local background = display.newImageRect("assets/img/space-1.png", 500, 600)
 background.x = display.contentCenterX
 background.y = display.contentCenterY
 
@@ -26,12 +28,41 @@ local myCircle = display.newCircle( display.contentCenterX, display.contentCente
 myCircle:setFillColor( 8/255, 196/255, 208/255 )
 myCircle.alpha = 0.3
 myCircle.myName = "shield"
-physics.addBody(myCircle, "static", { radius = 26 , bounce=0 })
+physics.addBody(myCircle, "static", { radius = physicsRadius , bounce=0 })
 
 local player = display.newCircle(display.contentCenterX, display.contentCenterY, 8)
 player:setFillColor(1, 1, 1)
 physics.addBody(player, "kinematic", {radius = 8, bounce = 0})
+player.myName = "player"
+player.gemNbr = 0
 
+-- Music & Sounds --
+
+-- Get a gem
+local getGem = audio.loadSound("assets/effects/get_gem.wav");
+-- When gems are carried to the safe zone
+local dropGem = audio.loadSound("assets/effects/drop_gem.wav");
+-- When the player hits an asteroïd
+local hit;
+-- Menu
+local menuMusic;
+-- Pause
+local pauseMusic;
+
+
+-- Function that decrease the shield zone by a factor
+local function decreaseShield()
+    factor = -3 * player.gemNbr;
+    myCircle.path.radius = myCircle.path.radius + factor
+end
+
+-- Function that increase the shield zone by a factor
+local function inscreaseShield()
+    factor = 3 * player.gemNbr;
+    myCircle.path.radius = myCircle.path.radius + factor
+    physics.removeBody(myCircle) 
+    physics.addBody(myCircle, "static", { radius = (myCircle.path.radius - 4) , bounce=0 })
+end
 
 local function dragPlayer(event)
     local background = event.target
@@ -93,7 +124,7 @@ local function hasCollidedCircle( obj1, obj2 )
 end
 
 local function createGem()
-    local gem = display.newImageRect("gem04purple.png", 40, 40)
+    local gem = display.newImageRect("assets/img/gem04purple.png", 40, 40)
     table.insert(gemTable, gem)
     physics.addBody(gem, "dynamic", { radius=12, bounce=0 } )
     gem.myName = "gem"
@@ -122,14 +153,18 @@ local function createGem()
 end
 
 local function gameLoop()
-    createGem()
-    if (hasCollidedCircle(myCircle, player) == true) then
-        if (isAtHome == false) then
-            isAtHome = true;
-            print("Player + shield")
-        end
+    if (hasCollidedCircle(myCircle, player) == true) then            
+        if ((isAtHome == false) and (player.gemNbr ~= 0)) then
+            audio.play(dropGem)
+            inscreaseShield()
+            isAtHome = true
+            player.gemNbr = 0
+        end 
+        for i = #gemTable, 1, -1 do
+            table.remove(gemCarried, i)
+        end 
     else
-        isAtHome = false;
+        isAtHome = false
     end
     for i = #gemTable, 1, -1 do
         local thisGem = gemTable[i] 
@@ -143,7 +178,7 @@ local function gameLoop()
         end
     end
 end
-gameLoopTimer = timer.performWithDelay( 500, gameLoop, 0 )
+gameLoopTimer = timer.performWithDelay( 1, gameLoop, 0 )
 
 local function onCollision( event )
 
@@ -152,8 +187,48 @@ local function onCollision( event )
         local obj1 = event.object1
         local obj2 = event.object2
 
-        if ( ( obj1.myName == "shield" and obj2.myName == "gem" ) or
-                ( obj1.myName == "gem" and obj2.myName == "shield" ) )
+        print(obj1.myName, obj2.myName)
+        
+        
+        -- Check collision between Player & gems
+        if ( (obj1.myName == "player" and obj2.myName == "gem") or (obj1.myName == "gem" and obj2.myName == "player")) then
+            if (obj1.myName == "player") then
+                display.remove(obj2)
+                for i = #gemTable, 1, -1 do
+                    if (gemTable[i] == obj2) then
+                        audio.play(getGem)
+                        player.gemNbr = player.gemNbr + 1 
+                        table.insert(gemCarried, obj2)
+                        table.remove(gemTable, i)
+                        break
+                    end
+                end
+            end
+            else if (obj2.myName == "player") then
+                display.remove(obj1)
+                for i = #gemTable, 1, -1 do
+                    if (gemTable[i] == obj1) then
+                        audio.play(getGem)
+                        player.gemNbr = player.gemNbr + 1                                              
+                        table.insert(gemCarried, obj1)                        
+                        table.remove(gemTable, i)
+                        break
+                    end
+                end
+            end
+            print(#gemCarried)
+        end
+
+        -- Check collision between Player & shield        
+        if ((obj1.myName == "player" and obj2.myName == "shield") or (obj1.myName == "shield" and obj2.myName == "player")) then
+            audio.play(dropGem)
+            player.gemCarried = 0            
+            print(player.gemCarried)
+        end
+
+        -- Check collision between Shield & gems        
+        if ((obj1.myName == "shield" and obj2.myName == "gem") or
+                (obj1.myName == "gem" and obj2.myName == "shield"))
         then
             if (obj1.myName == "shield" and obj2.myName == "gem")
             then
@@ -180,3 +255,9 @@ local function onCollision( event )
 end
 
 Runtime:addEventListener( "collision", onCollision )
+
+local function listener( event )
+    createGem()
+end
+
+timer.performWithDelay(500, listener, -1)
