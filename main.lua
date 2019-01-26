@@ -23,9 +23,12 @@ background.y = display.contentCenterY
 local myCircle = display.newCircle( display.contentCenterX, display.contentCenterY, 30 )
 myCircle:setFillColor( 8/255, 196/255, 208/255 )
 myCircle.alpha = 0.3
+myCircle.myName = "shield"
+physics.addBody(myCircle, "static", { radius = 26 , bounce=0 })
 
 local player = display.newCircle(display.contentCenterX, display.contentCenterY, 8)
 player:setFillColor(1, 1, 1)
+physics.addBody(player, "kinematic", {radius = 8, bounce = 0})
 
 
 local function dragPlayer(event)
@@ -49,11 +52,27 @@ local function dragPlayer(event)
 end
 background:addEventListener( "touch", dragPlayer )
 
+local trans
+local function followTap(event)
+    local background = event.target
+    local phase = event.phase
+    --[[     if(trans)then
+          transition.cancel(trans)
+        end ]]
+    if ("began" == phase) then
+        player:setLinearVelocity(event.x -player.x, event.y-player.y)
+    elseif ("ended" == phase or "cancelled" == phase) then
+        player:setLinearVelocity(0,0)
+    end
+    --trans = transition.to(player,{time=200,x=event.x,y=event.y})  -- move to touch position
+    return true
+end
+background:addEventListener("touch", followTap)
 
 local function createGem()
     local gem = display.newImageRect("gem04purple.png", 40, 40)
     table.insert(gemTable, gem)
-    physics.addBody(gem, "dynamic", { radius=40, bounce=0.8 } )
+    physics.addBody(gem, "dynamic", { radius=12, bounce=0 } )
     gem.myName = "gem"
 
     local whereFrom = math.random(4)
@@ -76,7 +95,7 @@ local function createGem()
         gem.x = math.random(display.contentWidth)
         gem.y = -60
     end
-    gem:applyTorque( math.random( -6,6 ) )
+    gem:applyTorque( math.random( -3,3 ) )
 end
 
 local function gameLoop()
@@ -94,3 +113,39 @@ local function gameLoop()
     end
 end
 gameLoopTimer = timer.performWithDelay( 500, gameLoop, 0 )
+
+local function onCollision( event )
+
+    if ( event.phase == "began" ) then
+
+        local obj1 = event.object1
+        local obj2 = event.object2
+
+        if ( ( obj1.myName == "shield" and obj2.myName == "gem" ) or
+                ( obj1.myName == "gem" and obj2.myName == "shield" ) )
+        then
+            if (obj1.myName == "shield" and obj2.myName == "gem")
+            then
+                display.remove(obj2)
+                for i = #gemTable, 1, -1 do
+                    if ( gemTable[i] == obj2 ) then
+                        table.remove( gemTable, i )
+                        break
+                    end
+                end
+            end
+            if (obj1.myName == "gem" and obj2.myName == "shield")
+            then
+                display.remove(obj1)
+                for i = #gemTable, 1, -1 do
+                    if ( gemTable[i] == obj1 ) then
+                        table.remove( gemTable, i )
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+
+Runtime:addEventListener( "collision", onCollision )
