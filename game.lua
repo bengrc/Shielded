@@ -62,7 +62,7 @@ local getGem = audio.loadSound("assets/effects/get_gem.wav");
 -- When gems are carried to the safe zone
 local dropGem = audio.loadSound("assets/effects/drop_gem.wav");
 -- When the player hits an asteroïd
-local hit;
+local hit = audio.loadSound("assets/effects/explosion.mp3"); 
 -- Menu
 local menuMusic;
 -- Pause
@@ -209,12 +209,13 @@ local function astListener( event )
 end
 
 local function gameLoop()
-    if (lives <= 0) then
+    if (lives <= 0 or myCircle.path.radius <= 10) then
         timer.cancel(gameLoopTimer)
         timer.cancel(astTimer)
         timer.cancel(gemTimer)       
         myCircle:removeSelf()
         background:removeSelf()
+        --player:removeSelf()
         player.alpha = 0
         player.isBodyActive = false
         nbLives:removeSelf()
@@ -291,14 +292,12 @@ local function onCollision( event )
                     end
                 end
             end
-            print(#gemCarried)
         end
  
         -- Check collision between Player & shield        
         if ((obj1.myName == "player" and obj2.myName == "shield") or (obj1.myName == "shield" and obj2.myName == "player")) then
             audio.play(dropGem)
             player.gemCarried = 0            
-            print(player.gemCarried)
         end
 
         -- Collision : shield and gems
@@ -379,8 +378,7 @@ local function onCollision( event )
                     end
                 end
             end
-            decreaseShield()
-            
+            audio.play(hit)            
         end        
     end
 end
@@ -420,6 +418,7 @@ function scene:create( event )
 
     background:addEventListener( "touch", dragPlayer )
     background:addEventListener("touch", followTap)
+    hitTimer = timer.performWithDelay(3000, decreaseShield, -1)
     gemTimer = timer.performWithDelay(500, gemListener, -1)
     astTimer = timer.performWithDelay(500, astListener, -1)    
     Runtime:addEventListener( "collision", onCollision )
@@ -454,10 +453,10 @@ function scene:hide( event )
 	if ( phase == "will" ) then
         -- Code here runs when the scene is on screen (but is about to go off screen)
         timer.cancel(gameLoopTimer)
-
 	elseif ( phase == "did" ) then
         -- Code here runs immediately after the scene goes entirely off screen
         physics.pause()
+        timer.cancel(decreaseShield)
 
 	end
 end
@@ -466,7 +465,7 @@ end
 -- destroy()
 function scene:destroy( event )
 
-	local sceneGroup = self.view
+    local sceneGroup = self.view
 	-- Code here runs prior to the removal of scene's view
 
 end
