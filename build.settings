@@ -44,7 +44,25 @@ settings =
 	{
 
 	},
+    win32 =
+	{
+		preferenceStorage = "registry",
+	},
+	window =
+    {
+		defaultMode = "fullscreen",
+		--defaultViewWidth = 320,
+		--defaultViewHeight = 480,
+		resizable = true,
+		enableCloseButton = true,
+		enableMinimizeButton = true,
+		titleText = {
+            -- The "default" text will be used if the system is using a language and/or
+            -- country code not defined below. This serves as a fallback mechanism.
+            default = "A SHELTER IN THE BELT",
+		},
 
+    },
 	--
 	-- Project section
 	--

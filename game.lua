@@ -143,7 +143,13 @@ local function hasCollidedCircle( obj1, obj2 )
 end
 
 local function createGem()
-    local gem = display.newImageRect("assets/img/gem04purple.png", 40, 40)
+    local gemType = math.random(500)
+    local gem
+    if (math.mod(gemType, 2) == 0) then
+        gem = display.newImageRect("assets/img/gemV.png", 20, 20)
+    else
+        gem = display.newImageRect("assets/img/gemB.png", 25, 25)
+    end
     table.insert(gemTable, gem)
     physics.addBody(gem, "dynamic", { radius=12, bounce=0 } )
     gem.myName = "gem"
@@ -172,7 +178,7 @@ local function createGem()
 end
 
 local function createAst()
-	local ast = display.newImageRect("assets/img/gem06green.png", 40, 40)
+	local ast = display.newImageRect("assets/img/asteroid.png", 40, 40)
 	table.insert(astTable, ast)
 	physics.addBody(ast, "dynamic", {radius=12, bounce=0})
 	ast.myName = "ast"
@@ -197,7 +203,7 @@ local function createAst()
         ast.x = math.random(display.contentWidth)
         ast.y = -60
     end
-    ast:applyTorque( math.random( -3,3 ) )
+    ast:applyTorque( 0.1 )
 end
 
 local function gemListener( event )
