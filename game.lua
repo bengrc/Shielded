@@ -70,8 +70,9 @@ local pauseMusic;
 
 -- Function that decrease the shield zone by a factor
 local function decreaseShield()
-    factor = -3 * player.gemNbr;
+    factor = (-3) * player.gemNbr;
     myCircle.path.radius = myCircle.path.radius + factor
+    physics.addBody(myCircle, "static", { radius = (myCircle.path.radius + 4) , bounce=0 })
 end
 
 -- Function that increase the shield zone by a factor
@@ -112,7 +113,9 @@ local function followTap(event)
     if ("began" == phase) then
         player:setLinearVelocity(event.x -player.x, event.y-player.y)
     elseif ("ended" == phase or "cancelled" == phase) then
+        if (player ~= nil) then
         player:setLinearVelocity(0,0)
+        end
     end
     --trans = transition.to(player,{time=200,x=event.x,y=event.y})  -- move to touch position
     return true
@@ -206,13 +209,18 @@ local function astListener( event )
 end
 
 local function gameLoop()
---[[     if (hasCollidedCircle(myCircle, player) == true) then
-        if (isAtHome == false) then
-            isAtHome = true;
-            print("Player + shield")
-        end
-    else
-        isAtHome = false; ]]
+    if (lives <= 0) then
+        timer.cancel(gameLoopTimer)
+        timer.cancel(astTimer)
+        timer.cancel(gemTimer)       
+        myCircle:removeSelf()
+        background:removeSelf()
+        player.alpha = 0
+        player.isBodyActive = false
+        nbLives:removeSelf()
+        composer.removeScene("game")
+        gotoMenu()
+    end
     if (hasCollidedCircle(myCircle, player) == true) then            
         if ((isAtHome == false) and (player.gemNbr ~= 0)) then
             audio.play(dropGem)
@@ -371,6 +379,8 @@ local function onCollision( event )
                     end
                 end
             end
+            decreaseShield()
+            
         end        
     end
 end
@@ -410,8 +420,8 @@ function scene:create( event )
 
     background:addEventListener( "touch", dragPlayer )
     background:addEventListener("touch", followTap)
-    timer.performWithDelay(500, gemListener, -1)
-    timer.performWithDelay(500, astListener, -1)    
+    gemTimer = timer.performWithDelay(500, gemListener, -1)
+    astTimer = timer.performWithDelay(500, astListener, -1)    
     Runtime:addEventListener( "collision", onCollision )
 
 end
